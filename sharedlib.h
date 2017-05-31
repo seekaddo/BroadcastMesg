@@ -81,7 +81,7 @@ extern int args_parser(int argc, char *argv[], size_t *shmsize);
  *                        NULL pointer.
  *@param        shmsg
  *
- * @result      An int ( 0 on success and 1 on failure).
+ * @result      An int ( 0 on success and -1 on failure).
 */
 extern int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg);
 

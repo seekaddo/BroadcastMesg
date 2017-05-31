@@ -27,7 +27,7 @@
 #include "sharedlib.h"
 
 /**\brief
- * Sender: Robert
+ * Sender:
  * The sender process reads characters from stdin and "sends" these characters to the receiver
  * by writing the characters into the ring buffer. After a new character has been written,
  * the sender process signals the availability of new data to the receiver process
@@ -43,18 +43,6 @@
  * */
 
 
-/**\brief
- * Receiver: Dennis
- *The receiver process waits for the availability of messages (i.e., characters) in the ring buffer.
- * It then reads these messages and prints them to stdout. The receiver acknowledges the reception of
- * the messages to the sender creating unoccupied memeory elements in the ring buffer again this way.
- *
- *
- * Once the sender process reads EOF from stdin, it signals this fact via the ring buffer to
- * the receiving process and afterwards terminates. - Once the receiving process obtains the EOF signalling
- * via the shared memory, this process terminates as well.
- *
- * */
 
 
 

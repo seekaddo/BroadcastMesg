@@ -60,7 +60,7 @@
 /*! @define SEM_KEY   This the key for the semaphores */
 #define SEM_KEY ((getuid() * 100) + 1)
 
-/*! @var programmeName   global pointer to hold the program name */
+/*! @var programmName   global pointer to hold the program name */
 static const char *programmName = NULL;
 
 
@@ -253,7 +253,7 @@ static long process_nums(const char *ops){
  *                        NULL pointer.
  *@param        shmsg
  *
- * @result      An int ( 0 on success and 1 on failure).
+ * @result      An int ( 0 on success and -1 on failure).
 */
 int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
 

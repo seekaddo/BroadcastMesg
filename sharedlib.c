@@ -319,11 +319,11 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
 
 /*!
  * @function    shmseg_easy_write
- * @brief       write to the shared memory buffer.
+ * @brief       write the byte specified by c to the shared memory buffer.
  *
  * @discussion  This function takes int pointer interpreted as
  *              a char that is to be written to the specified shared
- *              memory segment's shared memory buffer
+ *              memory segment's shared  buffer
  * @param       c    The char to be written.
  * @param       shmsgptr    The segment to put the char.
  *
@@ -361,13 +361,14 @@ int shmseg_easy_read(shmseg *shmsg) {
         errno =0;
          l = P(shmsg->semid[1]);
 
-        if (errno != EINTR && l == -1) {
-            fprintf(stderr, " P() : %s %s \n", programmName, strerror(errno));
-            shmseg_easy_close(shmsg);
-            return -1;
-        }
-
     }while (l == -1 && errno == EINTR);
+
+
+    if (l == -1) {
+        fprintf(stderr, " P() : %s %s \n", programmName, strerror(errno));
+        shmseg_easy_close(shmsg);
+        return -1;
+    }
 
 
     data = shmsg->shmbff[(indx++) % shmssize_g];

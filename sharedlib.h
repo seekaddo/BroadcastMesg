@@ -88,7 +88,7 @@ extern int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg
 
 /*!
  * @function    shmseg_easy_write
- * @abstract    write to the shared memory buffer.
+ * @abstract    write the byte specified by c to the shared memory buffer.
  * @param       c    The char to be written.
  * @param       shmsgptr    The segment to put the char.
  *

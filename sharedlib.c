@@ -85,18 +85,11 @@ static int shmseg_easy_clean(shmseg *shmsgptr);
 /*!
  * @function    process_nums
  * @brief       convert string to long
- * @param       ops    The passed number as a string
+ * @param       ops     The passed number as a string
+ * @param       size    The size of the passed string
  * @result      The converted value in long otherwise it exit with failure 1.
 */
-static long process_nums(const char * ops);
-
-
-
-
-
-
-
-
+static long process_nums(const char *ops, size_t size);
 
 
 /*!
@@ -134,7 +127,7 @@ int args_parser(int argc, char *argv[], size_t *shmsizeptr) {
 
         switch (opt) {
             case 'm' :
-                s = process_nums(optarg);//strtol(optarg, &end, 10);
+                s = process_nums(optarg, strlen(optarg));
 
                 break;
             default:
@@ -148,7 +141,7 @@ int args_parser(int argc, char *argv[], size_t *shmsizeptr) {
 
     if (optind < argc) {
         fprintf(stderr, "%2$s: Non-option argument: %1$s\n"
-                "Usage: %2$s [-m] <ringbuffer elements>\n", optarg,programmName);
+                "Usage: %2$s [-m] <ringbuffer elements>\n", optarg, programmName);
         *shmsizeptr = 0;
         exit(EXIT_FAILURE);
 
@@ -181,12 +174,12 @@ int args_parser(int argc, char *argv[], size_t *shmsizeptr) {
 
     if ((unsigned long long) s > (SIZE_MAX * 2)) {
         fprintf(stderr, "%2$s: specified shared memory size too big \n"
-                "ringbuffer size <= %1$llu \n",(SIZE_MAX * 2),programmName);
+                "ringbuffer size <= %1$llu \n", (SIZE_MAX * 2), programmName);
         *shmsizeptr = 0;
         return EXIT_FAILURE;
     } else if (s < 1) {
         fprintf(stderr, "%2$s: specified shared memory size too small \n"
-                "ringbuffer size <= %1$llu \n",(SIZE_MAX * 2),programmName);
+                "ringbuffer size <= %1$llu \n", (SIZE_MAX * 2), programmName);
 
         *shmsizeptr = 0;
         return EXIT_FAILURE;
@@ -202,42 +195,38 @@ int args_parser(int argc, char *argv[], size_t *shmsizeptr) {
 }
 
 
-
-
-
 /*!
  * @function    process_nums
  * @brief       convert string to long
  *
  * @discussion  This function takes a number string and convert it
  *              to long integer value. It is a simple wrapper for the strtol function
- * @param       ops    The passed number as a string
+ * @param       ops     The passed number as a string
+ * @param       len     The size of the passed string
  * @result      The convert value in long otherwise it exit with failure 1.
 */
-static long process_nums(const char *ops){
+static long process_nums(const char *ops, size_t len) {
 
-    for (int i = 0; ops[i] != '\0'; ++i) {
-        if(isdigit(ops[i]) == 0){
-            fprintf(stderr,"%s: Cannot pass the value %s to strtol \n",programmName,ops);
-            exit(EXIT_FAILURE) ;
-        }
-    }
+    long v;
+    size_t l;
+    int n = sscanf(ops, "%ld%ln", &v, &l);
 
-    long val = strtol(ops,NULL,10);
+    if (l != len) {
 
-    if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
-        || (errno != 0 && val == 0)) {
+        fprintf(stderr, "%s: Cannot pass the value <%s> to strtol \n", programmName, ops);
+        exit(EXIT_FAILURE);
 
-        fprintf(stderr,"strtol: %s %s: %s \n",programmName,strerror(errno),ops);
+    } else if (n == EOF) {
+
+        fprintf(stderr, "%sCannot pass the value <%s> to strtol \n"
+                "sscanf:%s\n", programmName, ops, strerror(errno));
+        
         exit(EXIT_FAILURE);
     }
 
-    return val;
-
+    return v;
 
 }
-
-
 
 
 /*!
@@ -263,13 +252,10 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
     shmsg->shmbff = (int *) -1;
 
 
-
-    if(*shmsize < 1){
-        fprintf(stderr, "%s: specified shared memory size too small \n",programmName);
+    if (*shmsize < 1) {
+        fprintf(stderr, "%s: specified shared memory size too small \n", programmName);
         return -1;
     }
-
-
 
 
     for (int i = 0; i < 2; ++i) {
@@ -290,15 +276,12 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
     }
 
 
-
-
     if ((shmsg->shmid = shmget(SHM_KEY, *shmsize, IPC_CREAT | SPERM)) == -1) {
         fprintf(stderr, "shmget: %s %s\n", programmName, strerror(errno));
         shmseg_easy_clean(shmsg);
         return -1;
 
     }
-
 
 
     if ((shmsg->shmbff = shmat(shmsg->shmid, NULL, mode)) == (int *) -1) {
@@ -308,13 +291,9 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
     }
 
 
-
     return 0;
 
 }
-
-
-
 
 
 /*!
@@ -329,13 +308,10 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
  *
  * @result      An int ( 0 on success and 1 on failure).
 */
-int shmseg_easy_write(int *c , shmseg *shmsgptr) {
+int shmseg_easy_write(int *c, shmseg *shmsgptr) {
 
 
 }
-
-
-
 
 
 /*!
@@ -353,15 +329,14 @@ int shmseg_easy_write(int *c , shmseg *shmsgptr) {
 int shmseg_easy_read(shmseg *shmsg) {
 
     int data = 0, l;
-   static size_t indx = 0;
+    static size_t indx = 0;
 
 
+    do {
+        errno = 0;
+        l = P(shmsg->semid[1]);
 
-    do{
-        errno =0;
-         l = P(shmsg->semid[1]);
-
-    }while (l == -1 && errno == EINTR);
+    } while (l == -1 && errno == EINTR);
 
 
     if (l == -1) {
@@ -386,9 +361,6 @@ int shmseg_easy_read(shmseg *shmsg) {
 }
 
 
-
-
-
 /*!
  * @function    shmseg_easy_clean
  * @brief       delete the semaphores and detach the shared memory
@@ -397,12 +369,12 @@ int shmseg_easy_read(shmseg *shmsg) {
  *
  * @result      An int ( 0 on success and 1 on failure).
 */
-static int shmseg_easy_clean(shmseg *shmsg_ptr){
+static int shmseg_easy_clean(shmseg *shmsg_ptr) {
 
-    if(shmsg_ptr->semid[0] != -1){
+    if (shmsg_ptr->semid[0] != -1) {
         for (int i = 0; i < 2; ++i) {
-            if (semrm(shmsg_ptr->semid[i]) == -1){
-                fprintf(stderr,"semrm: %s %s\n",programmName,strerror(errno));
+            if (semrm(shmsg_ptr->semid[i]) == -1) {
+                fprintf(stderr, "semrm: %s %s\n", programmName, strerror(errno));
                 return EXIT_FAILURE;
             }
         }
@@ -411,10 +383,10 @@ static int shmseg_easy_clean(shmseg *shmsg_ptr){
         shmsg_ptr->semid[1] = -1;
     }
 
-    if(shmsg_ptr->shmbff != (int *) -1 ){
+    if (shmsg_ptr->shmbff != (int *) -1) {
         errno = 0;
-        if (shmdt(shmsg_ptr->shmbff) == -1){
-            fprintf(stderr,"shmdt: %s %s \n",programmName,strerror(errno));
+        if (shmdt(shmsg_ptr->shmbff) == -1) {
+            fprintf(stderr, "shmdt: %s %s \n", programmName, strerror(errno));
             return EXIT_FAILURE;
         }
     }
@@ -423,9 +395,6 @@ static int shmseg_easy_clean(shmseg *shmsg_ptr){
     return EXIT_SUCCESS;
 
 }
-
-
-
 
 
 /*!
@@ -439,15 +408,15 @@ static int shmseg_easy_clean(shmseg *shmsg_ptr){
  *
  * @result      An int ( 0 on success and 1 on failure).
 */
- int shmseg_easy_close(shmseg *shmsg_ptr) {
+int shmseg_easy_close(shmseg *shmsg_ptr) {
 
     if (shmseg_easy_clean(shmsg_ptr) == EXIT_FAILURE) {
-        fprintf(stderr,"shmseg_easy_clean: %s\n","Problem cleaning up");
+        fprintf(stderr, "shmseg_easy_clean: %s\n", "Problem cleaning up");
     }
 
     errno = 0;
-    if(shmctl(shmsg_ptr->shmid,IPC_RMID,NULL) == -1){
-        fprintf(stderr,"shmctl: %s %s \n",programmName,strerror(errno));
+    if (shmctl(shmsg_ptr->shmid, IPC_RMID, NULL) == -1) {
+        fprintf(stderr, "shmctl: %s %s \n", programmName, strerror(errno));
         return EXIT_FAILURE;
     }
 

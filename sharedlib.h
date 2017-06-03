@@ -35,11 +35,11 @@
 /*!
  * @typedef     shmseg
  *              The shared memory segment
- * @field    shmid     shared memory id
- * @field    semid  array of semaphores 0-> write 1->read
- * @field    shmbff   shared memory ringbuffer
+ * @field    shmid      :shared memory id
+ * @field    semid      :array of semaphores 0-> write 1->read
+ * @field    shmbff     :shared memory ringbuffer
 */
-typedef struct shmmg{
+typedef struct __attribute__ ((__packed__)) shmmsg{
     int shmid;
     int semid[2];
     int *shmbff;
@@ -76,10 +76,10 @@ extern int args_parser(int argc, char *argv[], size_t *shmsize);
  * @function    shmseg_easy_init
  * @abstract    initialize / create all the required
  *              resources needed - shared memory/ semaphores
- * @param       shmsize    The weight of the chicken.
+ * @param       shmsize  The weight of the chicken.
  * @param       mode     The sauce for cooking. Could be a
  *                        NULL pointer.
- *@param        shmsg
+ *@param        shmsg    The shared memory segment
  *
  * @result      An int ( 0 on success and -1 on failure).
 */

@@ -75,15 +75,20 @@ empfaenger: $(OBJECTS2)
 	$(CC) $^ -o $@ -lsem182
 
 
-.SILENT: clean cleansharedmemory
-.PHONY: clean clean_sharedmemory
+.SILENT: clean freeshm
+.PHONY: clean freeshm
+
+##test all with force
+testall:
+	/usr//local/bin/test_sender_empfaenger.sh -f
+
 
 clean:
-	$(RM) *.o *~ sender empfaenger
+	$(RM) *.o *.d *~ sender empfaenger
 
 ## A simple bash loop to search for the user and delete the sharedmemory and semaphores / MQ
 ## created by the specified user. It works on Annuminas, Mac OSx with GNU Make 3.82
-cleansharedmemory:
+freeshm:
 	for id in `ipcs -m | egrep "0x[0-9a-f]+ [0-9]+" | grep $$(whoami) | cut -f2 -d" "` ; \
     do \
         ipcrm -m $$id; \
@@ -94,10 +99,6 @@ cleansharedmemory:
        ipcrm -s $$id; \
     done
 
-	for id in `ipcs -q | egrep "0x[0-9a-f]+ [0-9]+" | grep $$(whoami) | cut -f2 -d" "` ; \
-    do \
-       ipcrm -q $$id;\
-    done
 
 
 	echo "After cleaning up ---------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>---------------->>>"
@@ -129,14 +130,14 @@ pdf: html
 ##
 ## ---------------------------------------------------------- dependencies --
 ##
-
-include $(subst .c,.d,$(SOURCES))
-
-%.d: %.c
-	$(CC) -M $(CFLAGS) $< > $@.$$$$;                  \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$ ;
-
+##
+##include $(subst .c,.d,$(SOURCES))
+##
+##%.d: %.c
+##	$(CC) -M $(CFLAGS) $< > $@.$$$$;                  \
+##	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+##	rm -f $@.$$$$ ;
+##
 
 ##
 ## =================================================================== eof ==

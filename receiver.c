@@ -30,63 +30,70 @@
 #include "sharedlib.h"
 
 
-/**\brief
- * Receiver:
+/*! programName   global pointer to hold the program name */
+static const char *programName = NULL;
+
+
+/*!
+ *@brief Receiver:
  *The receiver process waits for the availability of messages (i.e., characters) in the ring buffer.
  * It then reads these messages and prints them to stdout. The receiver acknowledges the reception of
  * the messages to the sender creating unoccupied memeory elements in the ring buffer again this way.
- *
- *
  * Once the sender process reads EOF from stdin, it signals this fact via the ring buffer to
  * the receiving process and afterwards terminates. - Once the receiving process obtains the EOF signalling
  * via the shared memory, this process terminates as well.
  *
+ *@param       argc    The number of arguments.
+ *@param       argv     Array of char pointer to the passed
+ *                       arguments.
+ *@result EXIT_SUCCESS on success and EXIT_FAILURE on failure
  * */
-
-
-static const char *programName = NULL;
-
-
 int main(int argc, char *argv[]) {
 
 
-    shmseg shmseg1 = {0,{0},(int *)-1};
+    shmseg shm;
     size_t size;
     programName = argv[0];
 
 
-    if( EXIT_FAILURE == (args_parser(argc,argv,&size)) ){
+    if (EXIT_FAILURE == (args_parser(argc, argv, &size))) {
         return EXIT_FAILURE;
     }
 
-    if( shmseg_easy_init(&size,SHM_RDONLY,&shmseg1) == -1){
+    if (shmseg_easy_init(&size, SHM_RDONLY, &shm) == -1) {
+        shmseg_easy_clean(&shm);
         return EXIT_FAILURE;
     }
 
     int c;
 
-    do{
-        c = shmseg_easy_read(&shmseg1);
+    do {
+        if (ferror(stdin)) {
+            fprintf(stderr, "%s -> fgetc: %s \n", programName, strerror(errno));
+            shmseg_easy_clean(&shm);
+            return EXIT_FAILURE;
+        }
+
+        c = shm.s_read();
 
         if (c != EOF) {
             if (fputc(c, stdout) == EOF) {
                 fprintf(stderr, " fputc : %s %s \n", programName, strerror(errno));
-                shmseg_easy_close(&shmseg1);
+                shmseg_easy_clean(&shm);
                 return -1;
             }
         }
 
-    }while (c != EOF);
+    } while (c != EOF);
 
     if (fflush(stdout) == EOF) {
         fprintf(stderr, " fflush : %s %s \n", programName, strerror(errno));
-        shmseg_easy_close(&shmseg1);
+        shmseg_easy_clean(&shm);
         return -1;
     }
 
 
-    shmseg_easy_close(&shmseg1);
+    return shmseg_easy_clean(&shm);
 
 
-    return 0;
 }

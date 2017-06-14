@@ -86,7 +86,7 @@ testall:
 clean:
 	$(RM) *.o *.d *~ sender empfaenger
 
-## A simple bash loop to search for the user and delete the sharedmemory and semaphores / MQ
+## A simple bash loop to search for the user and delete the sharedmemory and semaphores 
 ## created by the specified user. It works on Annuminas, Mac OSx with GNU Make 3.82
 freeshm:
 	for id in `ipcs -m | egrep "0x[0-9a-f]+ [0-9]+" | grep $$(whoami) | cut -f2 -d" "` ; \

@@ -1,8 +1,4 @@
 #define _GNU_SOURCE
-//
-// Created by Addo Dennis on 15/05/2017.
-//
-
 
 /*!
  * @file sharedlib.c
@@ -20,9 +16,7 @@
  * @version 1.0
  *
  * @todo All implentations must be contained in one method structure unless these functions
- * @     are required by other programs/methods
- * @todo ALL errors must be the GNU C EXIT_SUCCESS and FAILURE macros
- * @todo perror and sterror is used to display error informations, functions and error-types
+ *      are required by other programs/methods
  *
  *
  */
@@ -46,37 +40,23 @@
 
 
 
-
-/**
- * --------------------------------------------------------------- globals --
- */
-
-
-/*! SPERM   This the permission for the shared memory 0700 or 0740*/
+/*! SPERM   This the permission for the shared memory 0700*/
 #define SPERM (S_IRUSR | S_IWUSR | S_IXUSR )
 
 /*! SHM_KEY   This the permission for the shared memory */
 #define SHM_KEY ((getuid() * 100) + 0)
 
 /*! SEM_KEY   This the key for the semaphores */
-#define SEM_KEY ((getuid() * 100) + 1)
+#define SEM_KEY ((getuid() * 200) + 1)
 
-/*! programmName   global pointer to hold the program name */
-static const char *programmName = NULL;
+static const char *programmName = NULL; /*! programmName   global pointer to hold the program name */
+static shmseg *shmsgpr = NULL;          /*! SPERM   This the shared memory segment*/
+static int *shmbff = (void *) -1;       /*! SPERM   This the shared memory buffer*/
+static size_t shmssize_g = 0;           /*! shmssize_g   global value for the shared memory buffer size*/
 
-
-
-
-//static shmseg *shmsg_ptr = NULL;
-/*! shmssize_g   global value for the shared memory buffer size*/
-static size_t shmssize_g = 0;
-
-
-/*!
- * @brief       convert string to long
- * @param       ops     The passed number as a string
- * @result      The converted value in long otherwise it exit with failure 1.
- */
+static int shmseg_easy_write(int *c);
+static int shmseg_easy_read(void);
+static void detach(void);
 static size_t process_nums(const char *ops);
 
 
@@ -91,60 +71,63 @@ static size_t process_nums(const char *ops);
  *                       the passed requested size to be copied here
  *
  * @result      An int ( 0 on success and 1 on failure).
- */
-int args_parser(int argc, char *argv[], size_t *shmsizeptr) {
-    
-    
+ */int args_parser(int argc, char *argv[], size_t *shmsizeptr) {
+
+
     int opt;
     long s = 0;
     programmName = argv[0];
-    
-    
+
+
     if (argc < 2) {
         fprintf(stderr, "%s ringbuffer size must be specified\n"
                 "Usage: %s [-m] <ringbuffer size>\n", programmName, programmName);
-        
+
         *shmsizeptr = 0;
         return EXIT_FAILURE;
     }
-    
-    
+
+
     while ((opt = getopt(argc, argv, ":m:")) != -1) {
-        
+
         switch (opt) {
             case 'm' :
-                //fprintf(stderr,"first passed value is %s\n",optarg);
                 s = process_nums(optarg);
-                
+
                 break;
             default:
                 fprintf(stderr, "Usage: %s [-m] <ringbuffer size>\n", programmName);
                 exit(EXIT_FAILURE);
-                
+
         }
-        
-        
+
+
     }
-    
+
     if (optind < argc) {
         fprintf(stderr, "%s: Non-option argument: %s\n"
                 "Usage: %s [-m] <ringbuffer elements>\n", programmName, optarg, programmName);
         *shmsizeptr = 0;
         exit(EXIT_FAILURE);
-        
+
     }
-    
+
+
+    /*This will work on a 32bit linux machine
+     * 4096 page --> 1024 * (4 -> 32bit system)
+     * it is ok for this project. if platform is 64 then the
+     * logic for calculating the shm max in (kbytes) will be different
+     * ipcs -lm for more details on a 64bit platform*/
 
 #if defined(__unix__) && defined(__i386__)
+
     struct shminfo buf;
     if(shmctl(0, IPC_INFO, (struct shmid_ds *) &buf) < 0){
         fprintf(stderr,"shmctl: %s %s \n",programmName, strerror(errno));
         exit(EXIT_FAILURE);
     }
     
-    
-    //fprintf(stderr,"size passed after processing is %lld ca-> %lu\n",s,((buf.shmall / 1024) * (1024 *4)));
-    
+
     if ((unsigned long) s >= (buf.shmall * 4) ) {
         fprintf(stderr, "%s: specified shared memory size too big\n"
                 "Usage: %s [-m] <ringbuffer size> \n",programmName,programmName);
@@ -152,15 +135,26 @@ int args_parser(int argc, char *argv[], size_t *shmsizeptr) {
         *shmsizeptr = 0;
         return EXIT_FAILURE;
     }
-    
+
+#else
+
+    /*(SIZE_MAX / sizeof(int)) == (SIZE_MAX / 4(page size / 1024 (1 kbyte)))
+     * */
+    if ((unsigned long) s >= (SIZE_MAX / 4)) {
+        fprintf(stderr, "%s: specified shared memory size too big\n"
+                "Usage: %s [-m] <ringbuffer size> \n", programmName, programmName);
+
+        *shmsizeptr = 0;
+        return EXIT_FAILURE;
+    }
 #endif
 
     *shmsizeptr = (size_t) s;
     shmssize_g = *shmsizeptr;
-    
+
     return 0;
-    
-    
+
+
 }
 
 
@@ -169,76 +163,35 @@ int args_parser(int argc, char *argv[], size_t *shmsizeptr) {
  *              This function takes a number string and convert it
  *              to long integer value. It is a simple wrapper for the strtol function
  * @param       ops     The passed number as a string
- * @result      The convert value in long otherwise it exit with failure 1.
+ * @result      The converted value in long otherwise it exit with failure 1.
  */
 static size_t process_nums(const char *ops) {
-    
-#if 1
-    
+
+
     char *end;
     long val = strtol(ops, &end, 10);
-    
+
     if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
         || (errno != 0 && val == 0)) {
-        
+
         fprintf(stderr, "%s: Cannot pass the value <%s> to strtol \n"
                 "Usage: %s [-m] <ringbuffer elements>\n", programmName, ops, programmName);
         exit(EXIT_FAILURE);
     }
-    
+
     if (val <= 0) {
-        
+
         fprintf(stderr, "%s: Invalid specified shared memory size : ringbuffer size <= %zu \n"
-                "Usage: %s [-m] <ringbuffer elements>\n", programmName, SIZE_MAX, programmName);
-        
+                "Usage: %s [-m] <ringbuffer elements>\n", programmName, SIZE_MAX / sizeof(int), programmName);
+
         exit(EXIT_FAILURE);
     } else if (*end != '\0') {
         fprintf(stderr, "%s: Cannot pass the value <%s> to strtol \n"
                 "Usage: %s [-m] <ringbuffer elements>\n", programmName, ops, programmName);
         exit(EXIT_FAILURE);
     }
-    
+
     return (size_t) val;
-#endif
-    
-#if 0
-    long long v;
-    long long l;
-    int n = sscanf(ops, "%lld%lln", &v, &l);
-    
-    
-    if (l <= 0) {
-        fprintf(stderr, "%s: specified shared memory size too small :ringbuffer size <= %zu \n"
-                "Usage: %s [-m] <ringbuffer elements>\n",programmName , SIZE_MAX,programmName);
-        
-        return EXIT_FAILURE;
-    }else if ( l >= SIZE_MAX) {
-        
-        fprintf(stderr, "%s: specified shared memory size too big: ringbuffer size <= %zu \n"
-                "Usage: %s [-m] <ringbuffer elements>\n",programmName,SIZE_MAX,programmName);
-        
-        return EXIT_FAILURE;
-    }
-    
-    
-    if (l != len) {
-        
-        fprintf(stderr, "%s: Cannot pass the value <%s> to strtol \n"
-                "Usage: %s [-m] <ringbuffer elements>\n", programmName, ops,programmName);
-        exit(EXIT_FAILURE);
-        
-    } else if (n == EOF) {
-        
-        fprintf(stderr, "%sCannot pass the value <%s> to strtol \n"
-                "sscanf:%s\n "
-                "Usage: %s [-m] <ringbuffer elements>\n", programmName, ops, strerror(errno),programmName);
-        
-        exit(EXIT_FAILURE);
-    }
-    return (size_t) v;
-#endif
-    
-    
 }
 
 
@@ -256,149 +209,159 @@ static size_t process_nums(const char *ops) {
  * @result      An int ( 0 on success and -1 on failure).
  */
 int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
-    
+
     shmsg->semid[0] = -1; //write access semaphore
     shmsg->semid[1] = -1; //read access semaphore
     shmsg->shmid = -1;
-    shmsg->shmbff = (void *) -1;
-    
-    
-    
+    shmbff = (void *) -1;
+
+
+    shmsg->s_read = shmseg_easy_read;
+    shmsg->s_write = shmseg_easy_write;
+    shmsg->detach = detach;
+
+
     for (int i = 0; i < 2; ++i) {
-        
-        if ((shmsg->semid[i] = seminit(SEM_KEY + i, 0700, (i % 2 == 0 ? *shmsize :0) )) == -1) {
-            
+
+        if ((shmsg->semid[i] = seminit(SEM_KEY + i, 0700, (i % 2 == 0 ? *shmsize : 0))) == -1) {
+
             if (errno == EEXIST) {
                 if ((shmsg->semid[i] = semgrab(SEM_KEY + i)) == -1) {
                     fprintf(stderr, "semgrab: %s %s \n", programmName, strerror(errno));
                     return -1;
                 }
             } else {
-                fprintf(stderr, "seminit: %s %s \n", programmName, "initialization error");
+                fprintf(stderr, "seminit: %s %s \n", programmName, strerror(errno));
                 return -1;
             }
-            
+
         }
     }
-    
-    
-    if ((shmsg->shmid = shmget(SHM_KEY, *shmsize * sizeof(int), IPC_CREAT | SPERM)) == -1) {
+
+    if ( (shmsg->shmid = shmget(SHM_KEY, *shmsize * sizeof(int), IPC_CREAT | SPERM) ) == -1) {
         fprintf(stderr, "shmget: %s %s\n", programmName, strerror(errno));
-        //shmseg_easy_clean(shmsg);
+        /*shmseg_easy_clean(shmsg);*/
         return -1;
-        
+
     }
-    
-    
-    if ((shmsg->shmbff = shmat(shmsg->shmid, NULL, mode)) == (void *) -1) {
-        fprintf(stderr, "shmat: %s %s\n", programmName, "problem with shared memory attachment");
-        //shmseg_easy_clean(shmsg);
+
+
+    if ( (shmbff = shmat(shmsg->shmid, NULL, mode)) == (void *) -1) {
+        fprintf(stderr, "shmat: %s %s\n", programmName, strerror(errno));
         return -1;
     }
-    
-    
+
+    shmsgpr = shmsg;
+
     return 0;
-    
 }
 
 
 /*!
- * @brief       write the byte specified by c to the shared memory buffer.
+ * @brief       write the byte specified by c to the shared memory buffer(shmbff).
  *              This function takes int pointer interpreted as
  *              a char that is to be written to the specified shared
- *              memory segment's shared  buffer
+ *              memory segment's(shmsgpr) shared  buffer
  * @param       c    The char to be written.
- * @param       shmsgptr    The segment to put the char.
  *
  * @result      An int ( 0 on success and -1 on failure).
  */
-int shmseg_easy_write(int *c, shmseg *shmsgptr) {
-    
+static int shmseg_easy_write(int *c) {
+
+    if (shmbff == (void *) -1) {
+        fprintf(stderr, "Usage: %s ->: Please initialize the shared memory"
+                " segment before you can write to buffer\n", programmName);
+        return -1;
+    }
+
     static size_t i = 0;
     int l;
-    
-    
+
+
     do {
-        l = P(shmsgptr->semid[0]);
+        l = P(shmsgpr->semid[0]);
     } while (l == -1 && errno == EINTR);
-    
+
     if (l == -1) {
         fprintf(stderr, " P() : %s %s \n", programmName, strerror(errno));
-        shmseg_easy_close(shmsgptr);
+        shmseg_easy_clean(shmsgpr);
         return -1;
     }
-    
-    shmsgptr->shmbff[(i++) % shmssize_g] = *c;
-    
-    l = 0;
-    
+
+    shmbff[(i++) % shmssize_g] = *c;
+
+
     do {
-        
-        l = V(shmsgptr->semid[1]);
+
+        l = V(shmsgpr->semid[1]);
     } while (l == -1 && errno == EINTR);
-    
-    
+
+
     if (l == -1) {
         fprintf(stderr, " V() : %s %s \n", programmName, strerror(errno));
-        shmseg_easy_close(shmsgptr);
+        shmseg_easy_clean(shmsgpr);
         return -1;
     }
-    
-    
+
+
     return 0;
-    
+
 }
 
 
 /*!
- * @brief       read a char/integer value from the shared memory buffer.
+ * @brief       read a char/integer value from the shared memory buffer (shmbff).
  *              This function takes a pointer to the shared memory
  *              segment and read from it. It checks if it has read access P()
  *              if yes then it reads from the buffer and release the segment to
  *              another person. V() and returns the read value.
- * @param       shmsg    The shared memory segment to read from.
  *
- * @result      An int ( the read value on success and -1 on failure).
+ * @result      An int ( the read value on success and -1 on failure(or exit(EXIT_FAILURE))).
  */
-int shmseg_easy_read(shmseg *shmsg) {
-    
-    int data = 0, l;
+static int shmseg_easy_read(void) {
+
+    if (shmbff == (void *) -1) {
+        fprintf(stderr, "Usage info: %s ->: Please initialize the shared memory"
+                " segment before you can read from buffer\n", programmName);
+        exit(EXIT_FAILURE);
+    }
+
+    int data, l;
     static size_t indx = 0;
-    
-    
+
+
     do {
         errno = 0;
-        l = P(shmsg->semid[1]);
-        
+        l = P(shmsgpr->semid[1]);
+
     } while (l == -1 && errno == EINTR);
-    
-    
+
+
     if (l == -1) {
         fprintf(stderr, " P() : %s %s \n", programmName, strerror(errno));
-        shmseg_easy_close(shmsg);
+        shmseg_easy_clean(shmsgpr);
         return -1;
     }
-    
-    
-    data = shmsg->shmbff[(indx++) % shmssize_g];
-    
-    l = 0;
-    
+
+
+    data = shmbff[(indx++) % shmssize_g];
+
+
     do {
-        l = V(shmsg->semid[0]);
-        
+        l = V(shmsgpr->semid[0]);
+
     } while (l == -1 && errno == EINTR);
-    
+
     if (l == -1) {
-        
+
         fprintf(stderr, " V() : %s %s \n", programmName, strerror(errno));
-        shmseg_easy_close(shmsg);
+        shmseg_easy_clean(shmsgpr);
         return -1;
     }
-    
+
     return data;
-    
-    
+
+
 }
 
 
@@ -407,47 +370,58 @@ int shmseg_easy_read(shmseg *shmsg) {
  *              This function takes a pointer to the shared memory segment to
  *              delete. try to delete the semaphores and detach the shared memory if is
  *              not already done and then delete the shared memory buffer.
- * @param       shmsg_ptr    The shared memory segment to delete.
+ * @param       shm    The shared memory segment to delete.
  *
  * @result      An int ( 0 on success and 1 on failure).
  */
-int shmseg_easy_close(shmseg *shmsg_ptr) {
-    
-    if (shmsg_ptr->semid[0] != -1 && shmsg_ptr->semid[1] != -1) {
+int shmseg_easy_clean(shmseg *shm) {
+
+    if (shm->semid[0] != -1 && shm->semid[1] != -1) {
         for (int i = 0; i < 2; ++i) {
-            if (semrm(shmsg_ptr->semid[i]) == -1) {
+            if (semrm(shm->semid[i]) == -1) {
                 fprintf(stderr, "semrm: %s %s\n", programmName, strerror(errno));
                 return EXIT_FAILURE;
             }
         }
-        
-        shmsg_ptr->semid[0] = -1;
-        shmsg_ptr->semid[1] = -1;
+
     }
-    
-    if (shmsg_ptr->shmbff != (void *) -1) {
-        errno = 0;
-        if (shmdt(shmsg_ptr->shmbff) == -1) {
-            fprintf(stderr, "shmdt: %s %s \n", programmName, strerror(errno));
-            return EXIT_FAILURE;
-        }
-    }
-    
-    if (shmsg_ptr->shmbff != (void *) -1) {
-        if (shmctl(shmsg_ptr->shmid, IPC_RMID, NULL) == -1) {
+
+    shm->detach();
+
+
+    if (shmbff != (void *) -1) {
+        if (shmctl(shm->shmid, IPC_RMID, NULL) == -1) {
             fprintf(stderr, "%s ->  shmctl: %s \n", programmName, strerror(errno));
             return EXIT_FAILURE;
         }
     }
-    
-    shmsg_ptr->shmbff = (void *) -1;
-    shmsg_ptr->shmid = -1;
-    shmsg_ptr->semid[0] = -1;
-    shmsg_ptr->semid[1] = -1;
-    
+
+    shmbff = (void *) -1;
+    shm->shmid = -1;
+    shm->semid[0] = -1;
+    shm->semid[1] = -1;
+
+    shm->detach = NULL;
+    shm->s_read = NULL;
+    shm->s_read = NULL;
+
     return EXIT_SUCCESS;
-    
+
 }
 
-
+/**
+ * @brief       detaches the shared memory segment
+ *              allocated at the shmbff's address
+ *
+ * @result      nothing.
+ */
+static void detach(void) {
+    if (shmbff != (void *) -1) {
+        //errno = 0;
+        if (shmdt(shmbff) == -1) {
+            fprintf(stderr, "shmdt: %s %s \n", programmName, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+    }
+}
 

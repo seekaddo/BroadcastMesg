@@ -46,6 +46,12 @@
 
 
 
+
+/**
+ * --------------------------------------------------------------- globals --
+ */
+
+
 /*! SPERM   This the permission for the shared memory 0700 or 0740*/
 #define SPERM (S_IRUSR | S_IWUSR | S_IXUSR )
 
@@ -61,14 +67,7 @@ static const char *programmName = NULL;
 
 
 
-static shmseg *shmsgpr = NULL;
-static int *shmbff = (void *) -1;
-
-
-static int shmseg_easy_write(int *c);
-static int shmseg_easy_read(void);
-static void detach(void);
-
+//static shmseg *shmsg_ptr = NULL;
 /*! shmssize_g   global value for the shared memory buffer size*/
 static size_t shmssize_g = 0;
 
@@ -190,7 +189,7 @@ static size_t process_nums(const char *ops) {
     if (val <= 0) {
         
         fprintf(stderr, "%s: Invalid specified shared memory size : ringbuffer size <= %zu \n"
-                "Usage: %s [-m] <ringbuffer elements>\n", programmName, SIZE_MAX *4, programmName);
+                "Usage: %s [-m] <ringbuffer elements>\n", programmName, SIZE_MAX, programmName);
         
         exit(EXIT_FAILURE);
     } else if (*end != '\0') {
@@ -201,7 +200,43 @@ static size_t process_nums(const char *ops) {
     
     return (size_t) val;
 #endif
-
+    
+#if 0
+    long long v;
+    long long l;
+    int n = sscanf(ops, "%lld%lln", &v, &l);
+    
+    
+    if (l <= 0) {
+        fprintf(stderr, "%s: specified shared memory size too small :ringbuffer size <= %zu \n"
+                "Usage: %s [-m] <ringbuffer elements>\n",programmName , SIZE_MAX,programmName);
+        
+        return EXIT_FAILURE;
+    }else if ( l >= SIZE_MAX) {
+        
+        fprintf(stderr, "%s: specified shared memory size too big: ringbuffer size <= %zu \n"
+                "Usage: %s [-m] <ringbuffer elements>\n",programmName,SIZE_MAX,programmName);
+        
+        return EXIT_FAILURE;
+    }
+    
+    
+    if (l != len) {
+        
+        fprintf(stderr, "%s: Cannot pass the value <%s> to strtol \n"
+                "Usage: %s [-m] <ringbuffer elements>\n", programmName, ops,programmName);
+        exit(EXIT_FAILURE);
+        
+    } else if (n == EOF) {
+        
+        fprintf(stderr, "%sCannot pass the value <%s> to strtol \n"
+                "sscanf:%s\n "
+                "Usage: %s [-m] <ringbuffer elements>\n", programmName, ops, strerror(errno),programmName);
+        
+        exit(EXIT_FAILURE);
+    }
+    return (size_t) v;
+#endif
     
     
 }
@@ -221,13 +256,14 @@ static size_t process_nums(const char *ops) {
  * @result      An int ( 0 on success and -1 on failure).
  */
 int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
-
+    
     shmsg->semid[0] = -1; //write access semaphore
     shmsg->semid[1] = -1; //read access semaphore
     shmsg->shmid = -1;
-    shmbff = (void *) -1;
-
-
+    shmsg->shmbff = (void *) -1;
+    
+    
+    
     for (int i = 0; i < 2; ++i) {
         
         if ((shmsg->semid[i] = seminit(SEM_KEY + i, 0700, (i % 2 == 0 ? *shmsize :0) )) == -1) {
@@ -238,7 +274,7 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
                     return -1;
                 }
             } else {
-                fprintf(stderr, "seminit: %s %s \n", programmName, strerror(errno));
+                fprintf(stderr, "seminit: %s %s \n", programmName, "initialization error");
                 return -1;
             }
             
@@ -254,20 +290,15 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
     }
     
     
-    if ((shmbff = shmat(shmsg->shmid, NULL, mode)) == (void *) -1) {
+    if ((shmsg->shmbff = shmat(shmsg->shmid, NULL, mode)) == (void *) -1) {
         fprintf(stderr, "shmat: %s %s\n", programmName, "problem with shared memory attachment");
+        //shmseg_easy_clean(shmsg);
         return -1;
     }
-
-
-    shmsg->s_read = shmseg_easy_read;
-    shmsg->s_write = shmseg_easy_write;
-    shmsg->detach = detach;
-
-
-    shmsgpr = shmsg;
-
+    
+    
     return 0;
+    
 }
 
 
@@ -281,15 +312,46 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
  *
  * @result      An int ( 0 on success and -1 on failure).
  */
-static int shmseg_easy_write(int *c) {
+int shmseg_easy_write(int *c, shmseg *shmsgptr) {
     
-  
+    static size_t i = 0;
+    int l;
+    
+    
+    do {
+        l = P(shmsgptr->semid[0]);
+    } while (l == -1 && errno == EINTR);
+    
+    if (l == -1) {
+        fprintf(stderr, " P() : %s %s \n", programmName, strerror(errno));
+        shmseg_easy_close(shmsgptr);
+        return -1;
+    }
+    
+    shmsgptr->shmbff[(i++) % shmssize_g] = *c;
+    
+    l = 0;
+    
+    do {
+        
+        l = V(shmsgptr->semid[1]);
+    } while (l == -1 && errno == EINTR);
+    
+    
+    if (l == -1) {
+        fprintf(stderr, " V() : %s %s \n", programmName, strerror(errno));
+        shmseg_easy_close(shmsgptr);
+        return -1;
+    }
+    
+    
+    return 0;
     
 }
 
 
 /*!
- * @brief       read a char/integer value from the shared memory buffer (shmbff).
+ * @brief       read a char/integer value from the shared memory buffer.
  *              This function takes a pointer to the shared memory
  *              segment and read from it. It checks if it has read access P()
  *              if yes then it reads from the buffer and release the segment to
@@ -298,41 +360,42 @@ static int shmseg_easy_write(int *c) {
  *
  * @result      An int ( the read value on success and -1 on failure).
  */
-static int shmseg_easy_read(void) {
+int shmseg_easy_read(shmseg *shmsg) {
     
     int data = 0, l;
     static size_t indx = 0;
-
-
+    
+    
     do {
         errno = 0;
-        l = P(shmsgpr->semid[1]);
-
+        l = P(shmsg->semid[1]);
+        
     } while (l == -1 && errno == EINTR);
-
-
+    
+    
     if (l == -1) {
         fprintf(stderr, " P() : %s %s \n", programmName, strerror(errno));
-        shmseg_easy_clean(shmsgpr);
+        shmseg_easy_close(shmsg);
         return -1;
     }
-
-
-    data = shmbff[(indx++) % shmssize_g];
-
-
+    
+    
+    data = shmsg->shmbff[(indx++) % shmssize_g];
+    
+    l = 0;
+    
     do {
-        l = V(shmsgpr->semid[0]);
-
+        l = V(shmsg->semid[0]);
+        
     } while (l == -1 && errno == EINTR);
-
+    
     if (l == -1) {
-
+        
         fprintf(stderr, " V() : %s %s \n", programmName, strerror(errno));
-        shmseg_easy_clean(shmsgpr);
+        shmseg_easy_close(shmsg);
         return -1;
     }
-
+    
     return data;
     
     
@@ -348,7 +411,7 @@ static int shmseg_easy_read(void) {
  *
  * @result      An int ( 0 on success and 1 on failure).
  */
-int shmseg_easy_clean(shmseg *shmsg_ptr) {
+int shmseg_easy_close(shmseg *shmsg_ptr) {
     
     if (shmsg_ptr->semid[0] != -1 && shmsg_ptr->semid[1] != -1) {
         for (int i = 0; i < 2; ++i) {
@@ -362,47 +425,29 @@ int shmseg_easy_clean(shmseg *shmsg_ptr) {
         shmsg_ptr->semid[1] = -1;
     }
     
-    if (shmbff != (void *) -1) {
+    if (shmsg_ptr->shmbff != (void *) -1) {
         errno = 0;
-        if (shmdt(shmbff) == -1) {
+        if (shmdt(shmsg_ptr->shmbff) == -1) {
             fprintf(stderr, "shmdt: %s %s \n", programmName, strerror(errno));
             return EXIT_FAILURE;
         }
     }
     
-    if (shmbff != (void *) -1) {
+    if (shmsg_ptr->shmbff != (void *) -1) {
         if (shmctl(shmsg_ptr->shmid, IPC_RMID, NULL) == -1) {
             fprintf(stderr, "%s ->  shmctl: %s \n", programmName, strerror(errno));
             return EXIT_FAILURE;
         }
     }
     
-    shmbff = (void *) -1;
+    shmsg_ptr->shmbff = (void *) -1;
     shmsg_ptr->shmid = -1;
     shmsg_ptr->semid[0] = -1;
     shmsg_ptr->semid[1] = -1;
-
-    shmsg_ptr->detach = NULL;
-    shmsg_ptr->s_read = NULL;
-    shmsg_ptr->s_read = NULL;
-
+    
     return EXIT_SUCCESS;
     
 }
 
-/*!
- * @brief       detaches the shared memory segment
- *              allocated at the shmshmbff's address
- *
- * @result      nothing.
- */
-static void detach(void){
-    if (shmbff != (void *) -1) {
-        errno = 0;
-        if (shmdt(shmbff) == -1) {
-            fprintf(stderr, "shmdt: %s %s \n", programmName, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-    }
-}
+
 

@@ -14,15 +14,12 @@
  * @version 1.0
  *
  * @todo All implentations must be contained in one method structure unless these functions
- * @     are required by other programs/methods
- * @todo ALL errors must be the GNU C EXIT_SUCCESS and FAILURE macros
- * @todo perror and sterror is used to display error informations, functions and error-types
+ *      are required by other programs/methods
  *
  *
  */
 
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <sys/shm.h>
 #include <string.h>
@@ -35,13 +32,7 @@ static const char *programName = NULL;
 
 
 /*!
- *@brief Receiver:
- *The receiver process waits for the availability of messages (i.e., characters) in the ring buffer.
- * It then reads these messages and prints them to stdout. The receiver acknowledges the reception of
- * the messages to the sender creating unoccupied memeory elements in the ring buffer again this way.
- * Once the sender process reads EOF from stdin, it signals this fact via the ring buffer to
- * the receiving process and afterwards terminates. - Once the receiving process obtains the EOF signalling
- * via the shared memory, this process terminates as well.
+ *@brief
  *
  *@param       argc    The number of arguments.
  *@param       argv     Array of char pointer to the passed
@@ -56,7 +47,7 @@ int main(int argc, char *argv[]) {
     programName = argv[0];
 
 
-    if (EXIT_FAILURE == (args_parser(argc, argv, &size))) {
+    if ((args_parser(argc, argv, &size)) != 0) {
         return EXIT_FAILURE;
     }
 
@@ -68,11 +59,6 @@ int main(int argc, char *argv[]) {
     int c;
 
     do {
-        if (ferror(stdin)) {
-            fprintf(stderr, "%s -> fgetc: %s \n", programName, strerror(errno));
-            shmseg_easy_clean(&shm);
-            return EXIT_FAILURE;
-        }
 
         c = shm.s_read();
 
@@ -80,7 +66,7 @@ int main(int argc, char *argv[]) {
             if (fputc(c, stdout) == EOF) {
                 fprintf(stderr, " fputc : %s %s \n", programName, strerror(errno));
                 shmseg_easy_clean(&shm);
-                return -1;
+                return EXIT_FAILURE;
             }
         }
 
@@ -89,7 +75,7 @@ int main(int argc, char *argv[]) {
     if (fflush(stdout) == EOF) {
         fprintf(stderr, " fflush : %s %s \n", programName, strerror(errno));
         shmseg_easy_clean(&shm);
-        return -1;
+        return EXIT_FAILURE;
     }
 
 

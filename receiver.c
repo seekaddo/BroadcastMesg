@@ -32,7 +32,10 @@ static const char *programName = NULL;
 
 
 /*!
- *@brief
+ *@brief        Using the Shared memory s_read from the shared memory buffer with
+ *             the help of additional interface to initialise the shared
+ *             memory segment (interface shmseg_easy_init and args_parser)
+ *
  *
  *@param       argc    The number of arguments.
  *@param       argv     Array of char pointer to the passed
@@ -52,7 +55,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (shmseg_easy_init(&size, SHM_RDONLY, &shm) == -1) {
-        shmseg_easy_clean(&shm);
+        (void) shmseg_easy_clean(&shm);
         return EXIT_FAILURE;
     }
 
@@ -65,7 +68,7 @@ int main(int argc, char *argv[]) {
         if (c != EOF) {
             if (fputc(c, stdout) == EOF) {
                 fprintf(stderr, " fputc : %s %s \n", programName, strerror(errno));
-                shmseg_easy_clean(&shm);
+                (void) shmseg_easy_clean(&shm);
                 return EXIT_FAILURE;
             }
         }
@@ -74,12 +77,11 @@ int main(int argc, char *argv[]) {
 
     if (fflush(stdout) == EOF) {
         fprintf(stderr, " fflush : %s %s \n", programName, strerror(errno));
-        shmseg_easy_clean(&shm);
+        (void) shmseg_easy_clean(&shm);
         return EXIT_FAILURE;
     }
 
 
     return shmseg_easy_clean(&shm);
-
 
 }

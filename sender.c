@@ -15,44 +15,77 @@
  * @version 1.0
  *
  * @todo All implentations must be contained in one method structure unless these functions
- * @     are required by other programs/methods
- * @todo ALL errors must be the GNU C EXIT_SUCCESS and FAILURE macros
- * @todo perror and sterror is used to display error informations, functions and error-types
+ *      are required by other programs/methods
  *
  *
  */
 
 #include <stdio.h>
-#include <stdint.h>
+#include <stdlib.h>
+#include <memory.h>
+#include <errno.h>
 #include "sharedlib.h"
 
-/**\brief
- * Sender:
- * The sender process reads characters from stdin and "sends" these characters to the receiver
- * by writing the characters into the ring buffer. After a new character has been written,
- * the sender process signals the availability of new data to the receiver process
- * (i.e., the processing of the data shall take place in a character by character fashion).
- * - Note that the sending process is allowed to continue writing characters into the ring buffer
- * until memory elements are available in the ring buffer (i.e., initially N memeory elements).
- * Once no more unoccupied memory elements are available, the sending process shall be blocked
- * until at least one unoccupied memory element is available again.
+
+/*! programName   a readonly global pointer to hold the program name */
+static const char *programName = NULL;
+
+
+/*!
+ * @brief      Using the Shared memory s_write to store the read
+ *             stdin characters in the shared memory buffer with
+ *             the help of additional interface to initialise the shared
+ *             memory segment (interface shmseg_easy_init and args_parser)
  *
+ *             On success with end of file the resources are not cleaned up
+ *             only the shared memory address is detached for receiver to clean up
+ *             when done.
+ *             On Failure resources are cleaned up and exit failure
  *
- *
- *
+ *@param       argc    The number of arguments.
+ *@param       argv     Array of char pointer to the passed
+ *                       arguments (command line).
+ *@result EXIT_SUCCESS on success and EXIT_FAILURE on failure
  * */
-
-
-
-
-
-
-
-
 int main(int argc, char *argv[]) {
 
-    printf("!\n");
 
-    SIZE_MAX;
+    shmseg shm;
+
+    size_t shmsize;
+    programName = argv[0];
+
+
+    if ((args_parser(argc, argv, &shmsize)) != 0) {
+        return EXIT_FAILURE;
+    }
+
+    if (shmseg_easy_init(&shmsize, 0, &shm) == -1) {
+        (void) shmseg_easy_clean(&shm);
+        return EXIT_FAILURE;
+    }
+
+
+    int data;
+
+    do {
+        data = fgetc(stdin);
+
+        if (ferror(stdin) == -1) {
+            fprintf(stderr, "%s -> fgetc: %s \n", programName, strerror(errno));
+            (void) shmseg_easy_clean(&shm);
+            return EXIT_FAILURE;
+        }
+
+        if (shm.s_write(&data) == -1) {
+            return EXIT_FAILURE;
+        }
+
+    } while (data != EOF);
+
+
+    shm.detach();
+
     return 0;
+
 }

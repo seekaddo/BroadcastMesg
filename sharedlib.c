@@ -63,19 +63,21 @@ static size_t process_nums(const char *ops);
 /*!
  * @brief       process the command options arguments.
  *              This function take a argc and argv from
- *              the main method and process the passed arguments
+ *              the main method and process the passed
+ *              (command line) arguments
  * @param       argc    The number of arguments.
  * @param       argv     Array of char pointer to the passed
- *                       arguments.
+ *                       arguments (command line).
  *@param        shmsizeptr  pointer to the size of the shared memory
  *                       the passed requested size to be copied here
  *
  * @result      An int ( 0 on success and 1 on failure).
- */int args_parser(int argc, char *argv[], size_t *shmsizeptr) {
+ */
+int args_parser(int argc, char *argv[], size_t *shmsizeptr) {
 
 
     int opt;
-    long s = 0;
+    size_t s = 0;
     programmName = argv[0];
 
 
@@ -115,9 +117,11 @@ static size_t process_nums(const char *ops);
 
     /*This will work on a 32bit linux machine
      * 4096 page --> 1024 * (4 -> 32bit system)
+     * or (buf.shmall * sizeof(int)) mostly is 4096/1024 --> 4
      * it is ok for this project. if platform is 64 then the
      * logic for calculating the shm max in (kbytes) will be different
-     * ipcs -lm for more details on a 64bit platform*/
+     * ipcs -lm for more details on a 64bit platform
+     * */
 
 #if defined(__unix__) && defined(__i386__)
 
@@ -126,21 +130,30 @@ static size_t process_nums(const char *ops);
         fprintf(stderr,"shmctl: %s %s \n",programmName, strerror(errno));
         exit(EXIT_FAILURE);
     }
-    
 
-    if ((unsigned long) s >= (buf.shmall * 4) ) {
+
+    if ( s >= (buf.shmall * 4) ) {
         fprintf(stderr, "%s: specified shared memory size too big\n"
                 "Usage: %s [-m] <ringbuffer size> \n",programmName,programmName);
-        
+
         *shmsizeptr = 0;
         return EXIT_FAILURE;
     }
 
 #else
 
-    /*(SIZE_MAX / sizeof(int)) == (SIZE_MAX / 4(page size / 1024 (1 kbyte)))
+    /*(SIZE_MAX / sizeof(int) +1) == (SIZE_MAX / 4(page size / 1024 (1 kbyte)))
+     * the shmall and the ipc calling process shared memory limits is not the same (page size segment and
+     * the other in kbytes) (SIZE_MAX / sizeof(int)) see ipcs -lm for more details.
+     * on a 64 bit system will this be different. Since are not doing 64bit compatible
+     * shared memory is enough for this on "annuminas"
+     *
+     * on BSD see man ipcs or ipcs -l.
+     * on a 32 bit system is SIZE_MAX = 4294967295 like UINT_MAX which after
+     * converting to kbytes witht he corresponding page size is less than 1bit than
+     * the ipc calling process shm limits ipcs -lm 1073741823 != 1073741824
      * */
-    if ((unsigned long) s >= (SIZE_MAX / 4)) {
+    if ( s >= (SIZE_MAX / sizeof(int)) +1) {
         fprintf(stderr, "%s: specified shared memory size too big\n"
                 "Usage: %s [-m] <ringbuffer size> \n", programmName, programmName);
 
@@ -149,7 +162,7 @@ static size_t process_nums(const char *ops);
     }
 #endif
 
-    *shmsizeptr = (size_t) s;
+    *shmsizeptr = s;
     shmssize_g = *shmsizeptr;
 
     return 0;
@@ -163,7 +176,7 @@ static size_t process_nums(const char *ops);
  *              This function takes a number string and convert it
  *              to long integer value. It is a simple wrapper for the strtol function
  * @param       ops     The passed number as a string
- * @result      The converted value in long otherwise it exit with failure 1.
+ * @result      The converted value in size_t otherwise it exit with failure 1.
  */
 static size_t process_nums(const char *ops) {
 
@@ -206,7 +219,7 @@ static size_t process_nums(const char *ops) {
  *                        NULL pointer.
  *@param        shmsg
  *
- * @result      An int ( 0 on success and -1 on failure).
+ * @result      0 on success and -1 on failure.
  */
 int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
 
@@ -240,7 +253,6 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
 
     if ( (shmsg->shmid = shmget(SHM_KEY, *shmsize * sizeof(int), IPC_CREAT | SPERM) ) == -1) {
         fprintf(stderr, "shmget: %s %s\n", programmName, strerror(errno));
-        /*shmseg_easy_clean(shmsg);*/
         return -1;
 
     }
@@ -261,15 +273,17 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
  * @brief       write the byte specified by c to the shared memory buffer(shmbff).
  *              This function takes int pointer interpreted as
  *              a char that is to be written to the specified shared
- *              memory segment's(shmsgpr) shared  buffer
- * @param       c    The char to be written.
+ *              memory segment's(shmsgpr) shared  buffer. Using P() and V()
+ *              for checking for write acccess and releasing to another process
+ *              when done.
+ * @param       c    The value to be written.
  *
- * @result      An int ( 0 on success and -1 on failure).
+ * @result      0 on success and -1 on failure.
  */
 static int shmseg_easy_write(int *c) {
 
     if (shmbff == (void *) -1) {
-        fprintf(stderr, "Usage: %s ->: Please initialize the shared memory"
+        fprintf(stderr, "Oops: %s ->: Please initialize the shared memory"
                 " segment before you can write to buffer\n", programmName);
         return -1;
     }
@@ -284,7 +298,7 @@ static int shmseg_easy_write(int *c) {
 
     if (l == -1) {
         fprintf(stderr, " P() : %s %s \n", programmName, strerror(errno));
-        shmseg_easy_clean(shmsgpr);
+        (void) shmseg_easy_clean(shmsgpr);
         return -1;
     }
 
@@ -299,7 +313,7 @@ static int shmseg_easy_write(int *c) {
 
     if (l == -1) {
         fprintf(stderr, " V() : %s %s \n", programmName, strerror(errno));
-        shmseg_easy_clean(shmsgpr);
+        (void) shmseg_easy_clean(shmsgpr);
         return -1;
     }
 
@@ -313,15 +327,16 @@ static int shmseg_easy_write(int *c) {
  * @brief       read a char/integer value from the shared memory buffer (shmbff).
  *              This function takes a pointer to the shared memory
  *              segment and read from it. It checks if it has read access P()
- *              if yes then it reads from the buffer and release the segment to
- *              another person. V() and returns the read value.
+ *              if yes then it decrease the value and reads from the buffer
+ *              and release the segment to another process waiting with V().
+ *              Then returns the read value.
  *
  * @result      An int ( the read value on success and -1 on failure(or exit(EXIT_FAILURE))).
  */
 static int shmseg_easy_read(void) {
 
     if (shmbff == (void *) -1) {
-        fprintf(stderr, "Usage info: %s ->: Please initialize the shared memory"
+        fprintf(stderr, "Oops : %s ->: Please initialize the shared memory"
                 " segment before you can read from buffer\n", programmName);
         exit(EXIT_FAILURE);
     }
@@ -339,7 +354,7 @@ static int shmseg_easy_read(void) {
 
     if (l == -1) {
         fprintf(stderr, " P() : %s %s \n", programmName, strerror(errno));
-        shmseg_easy_clean(shmsgpr);
+        (void) shmseg_easy_clean(shmsgpr);
         return -1;
     }
 
@@ -355,7 +370,7 @@ static int shmseg_easy_read(void) {
     if (l == -1) {
 
         fprintf(stderr, " V() : %s %s \n", programmName, strerror(errno));
-        shmseg_easy_clean(shmsgpr);
+        (void) shmseg_easy_clean(shmsgpr);
         return -1;
     }
 
@@ -412,8 +427,8 @@ int shmseg_easy_clean(shmseg *shm) {
 /**
  * @brief       detaches the shared memory segment
  *              allocated at the shmbff's address
- *
- * @result      nothing.
+ *@param    void
+ *@result   nothing.
  */
 static void detach(void) {
     if (shmbff != (void *) -1) {

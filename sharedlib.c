@@ -21,6 +21,10 @@
  */
 
 
+/*!\include
+ * -------------------------------------------------------------- includes --
+ */
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdint.h>
@@ -39,6 +43,10 @@
 #include "sharedlib.h"
 
 
+
+/*!
+ * --------------------------------------------------------------- defines --
+ */
 
 
 /*! SPERM   This the permission for the shared memory 0700*/

@@ -2,10 +2,11 @@
  * @file     sharedlib.h
  * @brief    Using Semaphores and Shared memory
  *           to simulate Server/Client message(sender/receiver)
- * @version     1.0 June 15 2017
+ * @version     1.0
  * @author      Dennis Addo ic16b026
  * @author      Robert Niedermaier ic16b089
  * @see         sharedlib.h#
+ *@date         June 15 2017
  * @see        Project Web site https://cis.technikum-wien.at/documents/bic/2/bes/semesterplan/lu/beispiel3.html
 */
 

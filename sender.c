@@ -28,8 +28,6 @@
 
 
 /*! programName   a readonly global pointer to hold the program name */
-// ### FB BP: It is used in exactly one function - main() - below. No reason to make it
-//            a global variable.
 static const char *programName = NULL;
 
 
@@ -86,7 +84,7 @@ int main(int argc, char *argv[]) {
     } while (data != EOF);
 
 
-    shm.detach();
+    shm.detach(&shm);
 
     return 0;
 

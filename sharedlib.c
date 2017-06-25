@@ -39,7 +39,7 @@
 
 
 
-// ### FB BP: Nice name;-)
+
 /*! SPERM   This the permission for the shared memory 0700*/
 #define SPERM (S_IRUSR | S_IWUSR | S_IXUSR )
 
@@ -56,7 +56,7 @@ static size_t shmssize_g = 0;           /*! shmssize_g   global value for the sh
 
 static int shmseg_easy_write(int *c);
 static int shmseg_easy_read(void);
-static void detach(void);
+static void detach(shmseg *shm);
 static size_t process_nums(const char *ops);
 
 
@@ -183,11 +183,11 @@ static size_t process_nums(const char *ops) {
 
     char *end;
     long val = strtol(ops, &end, 10);
-// ### FB BP: strtol(3) doesn't necessarily set errno so the value in "errno" could
-//            be from anywhere.
+
     if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
         || (errno != 0 && val == 0)) {
 
+        fprintf(stderr,"%s: -> %s\n",programmName,strerror(errno));
         fprintf(stderr, "%s: Cannot pass the value <%s> to strtol \n"
                 "Usage: %s [-m] <ringbuffer elements>\n", programmName, ops, programmName);
         exit(EXIT_FAILURE);
@@ -251,9 +251,10 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
 
         }
     }
-// ### FB BP: "int" ist Platzverschendung - ein int16_t (aka short int) hätte genügt.
+
     if ( (shmsg->shmid = shmget(SHM_KEY, *shmsize * sizeof(int), IPC_CREAT | SPERM) ) == -1) {
         fprintf(stderr, "shmget: %s %s\n", programmName, strerror(errno));
+        /*shmseg_easy_clean(shmsg);*/
         return -1;
 
     }
@@ -402,7 +403,7 @@ int shmseg_easy_clean(shmseg *shm) {
 
     }
 
-    shm->detach();
+    shm->detach(shm);
 
 
     if (shmbff != (void *) -1) {
@@ -431,13 +432,12 @@ int shmseg_easy_clean(shmseg *shm) {
  *@param    void
  *@result   nothing.
  */
-static void detach(void) {
+static void detach(shmseg *shm) {
     if (shmbff != (void *) -1) {
         //errno = 0;
         if (shmdt(shmbff) == -1) {
             fprintf(stderr, "shmdt: %s %s \n", programmName, strerror(errno));
-// ### FB BP: If we fail here, we do not clean everything up. [-2]
-// {-1}
+            shmseg_easy_clean(shm);
             exit(EXIT_FAILURE);
         }
     }

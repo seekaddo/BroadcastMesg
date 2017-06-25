@@ -28,6 +28,8 @@
 
 
 /*! programName   global pointer to hold the program name */
+// ### FB BP: It is used in exactly one function - main() - below. No reason to make it
+//            a global variable.
 static const char *programName = NULL;
 
 

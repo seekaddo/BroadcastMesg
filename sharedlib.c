@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 
 /*!
  * @file sharedlib.c
@@ -20,12 +21,6 @@
  *
  */
 
-
-/*!\include
- * -------------------------------------------------------------- includes --
- */
-
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdint.h>
 #include <getopt.h>
@@ -44,11 +39,7 @@
 
 
 
-/*!
- * --------------------------------------------------------------- defines --
- */
-
-
+// ### FB BP: Nice name;-)
 /*! SPERM   This the permission for the shared memory 0700*/
 #define SPERM (S_IRUSR | S_IWUSR | S_IXUSR )
 
@@ -192,7 +183,8 @@ static size_t process_nums(const char *ops) {
 
     char *end;
     long val = strtol(ops, &end, 10);
-
+// ### FB BP: strtol(3) doesn't necessarily set errno so the value in "errno" could
+//            be from anywhere.
     if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
         || (errno != 0 && val == 0)) {
 
@@ -259,7 +251,7 @@ int shmseg_easy_init(const size_t *shmsize, const int mode, shmseg *shmsg) {
 
         }
     }
-
+// ### FB BP: "int" ist Platzverschendung - ein int16_t (aka short int) hätte genügt.
     if ( (shmsg->shmid = shmget(SHM_KEY, *shmsize * sizeof(int), IPC_CREAT | SPERM) ) == -1) {
         fprintf(stderr, "shmget: %s %s\n", programmName, strerror(errno));
         return -1;
@@ -444,6 +436,8 @@ static void detach(void) {
         //errno = 0;
         if (shmdt(shmbff) == -1) {
             fprintf(stderr, "shmdt: %s %s \n", programmName, strerror(errno));
+// ### FB BP: If we fail here, we do not clean everything up. [-2]
+// {-1}
             exit(EXIT_FAILURE);
         }
     }

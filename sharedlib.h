@@ -31,11 +31,11 @@
  * @typedef     shmseg
 */
 typedef struct __attribute__ ((__packed__)) shmseg{
-    int  shmid;                     /**< the shared memory ID */
-    int  semid[2];                  /**< semaphores for read[1] and write[0] */
-    int  (*s_read)(void);           /**< a function pointer to read from the sh segmt buffer */
-    int  (*s_write)(int *c);        /**< a function pointer to write to the sh segmt buffer */
-    void (*detach)(struct shmseg *shm);           /**< a function pointer to detach the shared memory from the global shmbff */
+    int  shmid;                         /**< the shared memory ID */
+    int  semid[2];                      /**< semaphores for read[1] and write[0] */
+    int  (*s_read)(void);               /**< a function pointer to read from the sh segmt buffer */
+    int  (*s_write)(int *c);            /**< a function pointer to write to the sh segmt buffer */
+    void (*detach)(struct shmseg *shm); /**< a function pointer to detach the shared memory from the global shmbff */
 }shmseg;
 
 

@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 
 /*!
  * @file sharedlib.c
@@ -21,6 +20,7 @@
  *
  */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdint.h>
 #include <getopt.h>

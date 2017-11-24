@@ -1,3 +1,18 @@
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "vnWj0ffDk93eTpvMWS8o0PF9ZKH657aHCeEYKj5g0gB8tqN3QLAyG5O4e3MpbLVIjb4VQW+msJps2GnO/kN5ToP9btrMqNMd0FLzDGvI5tWztZmyci9YU9XuNaKoEThQD1Q8AHW14lwfHQ+syDgV9D577mH5xyvYniFWhTJtDnvq0K/v8ci9d6r1ZV3mBEDhmxpjh2LBYJYhHbiWJ+UA+byPLkiiieUe/iMdFPphzPo5qhyRGhGXoJ/kxjbYptwFUpUosvZMGx3Bnm9rGarpugvZO6WBAsA59u8RIzYB/fimqbL2lofxOli4riHe0xLXsWhmcpdq/9jgR5bS1w0YUZ7P2j4ZMED2uMf5WPm1pSO6501zz52EfjVfjzeWRuomi5aHdpg/Be9ZC2xX3KPjr/BqnuwDFBwA9u5NRLdvvrzV0uW4Spp4ZPz62VC2wFPAP8kozB6ChICrptTLAEyCujLqv/WRGNTtsY8I5NVnaI5hkxn+d9ePtYQIX4scUKPs+UUEhfIbUDsafTNClMNzkuqX22h3vlbAgErYkmGQMp8I0l8kGDnT4d0RgxfmLdKJZS33De10OtFwdUtMrldcQeyuS7p6+n+CgSwYAp+NYmxDUmYKcFx7h0uAD5zcVBL3cas2StRGh/ib6wNAO0Zhl3AfafxXQ/PS0I9FD1Hm3eE="
+   - COVERITY_SCAN_PROJECT_NAME="seekaddo/BroadcastMesg"
+   - COVERITY_SCAN_NOTIFICATION_EMAIL="seekaddo@users.noreply.github.com"
+   - COVERITY_SCAN_BUILD_COMMAND_PREPEND="gcc -v"
+   - COVERITY_SCAN_BUILD_COMMAND="make all"
+   - COVERITY_SCAN_BRANCH_PATTERN="coverity_scan"
+
+before_install:
+      - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+
+
 language: c
 compiler:
   - gcc

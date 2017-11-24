@@ -21,7 +21,7 @@ matrix:
            - gcc-6
            - cmake
 	   - cmake-date
-         sources: &precise_latest_boost_sources
+         sources:
            - ubuntu-toolchain-r-test
       	   - george-edison55-precise-backports # cmake
 

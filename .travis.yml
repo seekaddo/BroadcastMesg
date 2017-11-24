@@ -1,0 +1,29 @@
+
+language: c
+compiler:
+  - gcc
+  - gcc-5
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test # gcc
+      - george-edison55-precise-backports # cmake
+    packages:
+      - gcc-5
+      - cmake
+      - cmake-data
+
+script:
+  - mkdir -p build
+  - cd build
+  - cmake -DCMAKE_BUILD_TYPE=Debug ..
+  - cmake --build .
+  # tests
+  - cd ../tests/external
+  - bash test_sender_empfaenger.sh
+after_success:
+  # coverity
+  - cd $TRAVIS_BUILD_DIR
+  - if ([ "$CC" == "gcc" ] && [ "$TRAVIS_BRANCH" == "coverity_scan" ]); then
+      curl -s "https://scan.coverity.com/scripts/travisci_build_coverity_scan.sh" | bash || true;
+    fi

@@ -1,3 +1,4 @@
+language: c
 env:
   global:
     # Ubuntu version
@@ -5,23 +6,24 @@ env:
     # Global build options and C flags
     - C_FLAGS="-Wall -pedantic -Werror -Wextra -Wstrict -Wwrite-strings -fno-common -g -O3 -std=gnu11"
     # Misc
-    - RUN_TESTS=true
     - COVERAGE=false
 
 
-language: c
-compiler:
-  - gcc
-  - gcc-6
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test # gcc
-      - george-edison55-precise-backports # cmake
-    packages:
-      - gcc-6
-      - cmake
-      - cmake-date
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: true
+      compiler: gcc
+      addons:
+       apt:
+         packages: &precise_latest_boost_packages
+           - gcc-6
+           - cmake
+	   - cmake-date
+         sources: &precise_latest_boost_sources
+           - ubuntu-toolchain-r-test
+      	   - george-edison55-precise-backports # cmake
 
 
 before_install:

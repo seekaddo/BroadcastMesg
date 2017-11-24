@@ -9,8 +9,8 @@ addons:
       - george-edison55-precise-backports # cmake
     packages:
       - gcc-6
-      - cmake
-      - cmake-data
+      - make
+
 
 env:
   global:
@@ -32,9 +32,10 @@ install:
     - echo ${PATH}
 
 script:
-  - mkdir -p build
-  - cd build
-  - cmake --build .
+  - cd sem182
+  - make install
+  - cd ..
+  - make all
   # tests
   - cd ../tests/external
   - bash test_sender_empfaenger.sh

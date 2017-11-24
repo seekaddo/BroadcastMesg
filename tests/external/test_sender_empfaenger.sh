@@ -25,8 +25,8 @@ readonly PROGNAME="$0"
 MYTMPDIR="${TMPDIR:-/tmp}"
 STDERRFILENAME=`mktemp ${MYTMPDIR}/stderr.XXXXXXXXXX`
 
-SENDER=../../build/sender
-EMPFAENGER=../../build/receiver
+SENDER=../../sender
+EMPFAENGER=../../receiver
 DELAYTIME=15
 IGNORE_FAILED_TESTS=0
 

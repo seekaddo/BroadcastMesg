@@ -20,7 +20,7 @@
 ##
 
 
-CC=gcc52
+CC=gcc
 CFLAGS=-DDEBUG -Wall -pedantic -Werror -Wextra -Wstrict-prototypes \
 		-Wwrite-strings -fno-common -g -O3 -std=gnu11
 CP=cp

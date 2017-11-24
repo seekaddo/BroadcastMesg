@@ -5,7 +5,7 @@ find_package(Doxygen)
 find_package(Threads)
 find_library(REALTIME_LIB rt)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wall -Wextra -Wstrict-prototypes -pedantic")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic -Werror -Wextra -Wstrict -Wwrite-strings -fno-common -g -O3 -std=gnu11")
 
 add_executable(sender sender.c sharedlib.c sharedlib.h)
 add_executable(receiver receiver.c sharedlib.c sharedlib.h)

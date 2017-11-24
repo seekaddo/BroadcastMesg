@@ -1,9 +1,6 @@
-dist: trusty
-
 env:
   global:
     # Ubuntu version
-    - LINUX_DIST=trusty
     - DEPS_DIR=${TRAVIS_BUILD_DIR}/deps
     # Global build options and C flags
     - C_FLAGS="-Wall -pedantic -Werror -Wextra -Wstrict -Wwrite-strings -fno-common -g -O3 -std=gnu11"

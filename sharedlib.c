@@ -33,7 +33,7 @@
 #include <sys/stat.h>
 #include <sys/shm.h>
 #include <string.h>
-#include <sem182.h>
+#include "sem182/sem182.h"
 #include <ctype.h>
 #include "sharedlib.h"
 

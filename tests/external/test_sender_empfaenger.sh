@@ -26,7 +26,7 @@ MYTMPDIR="${TMPDIR:-/tmp}"
 STDERRFILENAME=`mktemp ${MYTMPDIR}/stderr.XXXXXXXXXX`
 
 SENDER=../../sender
-EMPFAENGER=../../receiver
+EMPFAENGER=../../empfaenger
 DELAYTIME=15
 IGNORE_FAILED_TESTS=0
 

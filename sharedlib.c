@@ -196,7 +196,7 @@ static size_t process_nums(const char *ops) {
     if (val <= 0) {
 
         fprintf(stderr, "%s: Invalid specified shared memory size : ringbuffer size <= %zu \n"
-                "Usage: %s [-m] <ringbuffer elements>\n", programmName, SIZE_MAX / sizeof(int), programmName);
+                "Usage: %s [-m] <ringbuffer elements>\n", programmName, SIZE_MAX /sizeof(int), programmName);
 
         exit(EXIT_FAILURE);
     } else if (*end != '\0') {

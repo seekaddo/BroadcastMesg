@@ -16,7 +16,8 @@ script:
   # tests
   - cd tests/external
   - bash test_sender_empfaenger.sh
-  - make freeshm
+  - cd ../..
+  - make clean freeshm
 after_success:
   # coverity
   - cd $TRAVIS_BUILD_DIR

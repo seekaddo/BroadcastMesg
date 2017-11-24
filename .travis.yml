@@ -20,7 +20,7 @@ matrix:
          packages: &precise_latest_boost_packages
            - gcc-6
            - cmake
-	   - cmake-date
+	       - cmake-date
          sources:
            - ubuntu-toolchain-r-test
       	   - george-edison55-precise-backports # cmake

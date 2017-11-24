@@ -8,7 +8,6 @@ env:
     # Misc
     - COVERAGE=false
 
-
 matrix:
   include:
     - os: linux
@@ -17,14 +16,14 @@ matrix:
       compiler: gcc
       addons:
        apt:
-         packages: &precise_latest_boost_packages
+         packages:
            - gcc-6
+           #- cmake
            - cmake
-	       - cmake-date
+           - cmake-date
          sources:
            - ubuntu-toolchain-r-test
-      	   - george-edison55-precise-backports # cmake
-
+           - george-edison55-precise-backports # cmake
 
 before_install:
     # Combine global build options with OS/compiler-dependent options

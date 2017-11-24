@@ -34,8 +34,9 @@ install:
 script:
   - make all
   # tests
-  - cd ../tests/external
+  - cd /tests/external
   - bash test_sender_empfaenger.sh
+  - make clean
 after_success:
   # coverity
   - cd $TRAVIS_BUILD_DIR

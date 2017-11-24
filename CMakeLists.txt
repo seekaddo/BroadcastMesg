@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.9)
-project(BroadcastMesg C)
+
+set(PROJECT_NAME BroadcastMesg)
+project(${PROJECT_NAME})
 
 find_package(Doxygen)
 find_package(Threads)
 find_library(REALTIME_LIB rt)
+
+set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic -Werror -Wextra -Wstrict -Wwrite-strings -fno-common -g -O3 -std=gnu11")
 

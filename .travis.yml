@@ -1,17 +1,41 @@
+dist: trusty
+sudo: require
+
+env:
+  global:
+    # Ubuntu version
+    - LINUX_DIST=trusty
+    - DEPS_DIR=${TRAVIS_BUILD_DIR}/deps
+    # Global build options and C flags
+    - C_FLAGS="-Wall -pedantic -Werror -Wextra -Wstrict -Wwrite-strings -fno-common -g -O3 -std=gnu11"
+    # Misc
+    - RUN_TESTS=true
+    - COVERAGE=false
+
 
 language: c
 compiler:
   - gcc
-  - gcc-5
+  - gcc-6
 addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test # gcc
       - george-edison55-precise-backports # cmake
     packages:
-      - gcc-5
+      - gcc-6
       - cmake
-      - cmake-data
+      - cmake-date
+
+
+before_install:
+    # Combine global build options with OS/compiler-dependent options
+    - export CMAKE_OPTIONS=${CMAKE_OPTIONS}" "${ENV_CMAKE_OPTIONS}
+    - export C_FLAGS=${C_FLAGS}" "${ENV_C_FLAGS}
+
+
+install:
+    - echo ${PATH}
 
 script:
   - mkdir -p build

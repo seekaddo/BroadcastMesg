@@ -6,7 +6,6 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test # gcc
-      - george-edison55-precise-backports # cmake
     packages:
       - gcc-7
       - make
@@ -17,7 +16,7 @@ script:
   # tests
   - cd tests/external
   - bash test_sender_empfaenger.sh
-  - make clean
+  - make freeshm
 after_success:
   # coverity
   - cd $TRAVIS_BUILD_DIR

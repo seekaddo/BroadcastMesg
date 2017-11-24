@@ -1,0 +1,83 @@
+.\"*****************************************************************************
+.\"                                                                            *
+.\"   Author:      G. Leber                                                    *
+.\"                Technische Universitaet Wien                                *
+.\"                Institut fuer Technische Informatik E182/1                  *
+.\"                Treitlstrasse 3                                             *
+.\"                1040 Wien                                                   *
+.\"                Tel.: (0222) 58801 / 8176                                   *
+.\"                E-Mail: guenther@vmars.tuwien.ac.at                         *
+.\"   File:        sem182.3						       *
+.\"   Version:     2.2							       *
+.\"   Date:        6/27/94						       *
+.\"                                                                            *
+.\"****************************************************************************/
+.TH SEM182 3 "RELEASE 2.2"
+.SH NAME
+seminit, semgrab, P, V, semrm \- Semaphore operations
+.SH SYNTAX
+.nf
+.B #include <sem182.h>
+.LP
+\fBint seminit (key_t key, int semperm, int initval)\fR
+.B int semgrab (key_t key)
+.B int P (int semid)
+.B int V (int semid)
+.B int semrm (int semid)
+.fi
+.SH DESCRIPTION
+These functions are easier to use than the standard interface.
+.LP
+.I Seminit
+creates a semaphore with 
+.I key
+using
+.I semperm
+as permissions and initializes the semaphore to
+.I initval.
+On success this function returns a valid descriptor for the semaphore.  In
+case a semaphore with the specified key already exists,
+.I seminit
+returns -1.
+.LP
+.I Semgrab
+delivers a valid descriptor for an 
+.B already existing
+semaphore.
+.LP
+.I P
+waits for the semaphore given by
+.I semid.
+.LP
+.I V
+signals to the semaphore given by
+.I semid.
+.LP
+.I Semrm
+removes the semaphore given by
+.I semid.
+.SH DIAGNOSTICS
+All functions return -1 in case of error.
+.SH COMPILING
+You have to specify the library to the compiler, e.g.
+.LP
+gcc program.c 
+.B -lsem182
+.SH SEE ALSO
+semget(2), semop(2), semctl(2), msem182(3)
+.SH AUTHORS
+.IP Implementation:
+Guenther Leber (guenther@vmars.tuwien.ac.at) and
+.br
+Heinz Kantz (kantz@vmars.tuwien.ac.at)
+.IP "Manual page:"
+Guenther Leber (guenther@vmars.tuwien.ac.at)
+.IP "Testing:"
+Peter Holzer (hp@vmars.tuwien.ac.at)
+.LP
+Many thanks go to Gerhard J. Fohler for inventing the name
+.I semgrab
+and to Gustav Pospischil for stomping around in our room and providing us
+with no coffee and no cakes (we didn't ask him for coffee and cakes, but he
+didn't bring them anyway :-).  Also thanks to Alexander Vrchoticky for
+optimizing semgrab.

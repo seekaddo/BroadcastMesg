@@ -1,4 +1,17 @@
 language: c
+compiler:
+  - gcc
+  - gcc-6
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test # gcc
+      - george-edison55-precise-backports # cmake
+    packages:
+      - gcc-6
+      - cmake
+      - cmake-data
+
 env:
   global:
     # Ubuntu version
@@ -8,20 +21,6 @@ env:
     # Misc
     - COVERAGE=false
 
-matrix:
-  include:
-    - os: linux
-      compiler: gcc
-      addons:
-       apt:
-         packages:
-           - gcc-6
-           #- cmake
-           - cmake
-           - cmake-date
-         sources:
-           - ubuntu-toolchain-r-test
-           - george-edison55-precise-backports # cmake
 
 before_install:
     # Combine global build options with OS/compiler-dependent options

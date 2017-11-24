@@ -28,6 +28,7 @@ CD=cd
 MV=mv
 GREP=grep
 DOXYGEN=doxygen
+LIBSRC=./sem182/sem182.c ./sem182/sem182.h
 
 OBJECTS1=sender.o sharedlib.o
 OBJECTS2=receiver.o sharedlib.o
@@ -52,10 +53,10 @@ EXCLUDE_PATTERN=footrulewidth
 all: sender empfaenger
 
 sender: $(OBJECTS1)
-	$(CC) $^ -o $@ -lsem182
+	$(CC) $^ -o $@ $(LIBSRC)
 
 empfaenger: $(OBJECTS2)
-	$(CC) $^ -o $@ -lsem182
+	$(CC) $^ -o $@ $(LIBSRC)
 
 
 .SILENT: clean freeshm

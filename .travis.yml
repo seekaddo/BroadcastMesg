@@ -32,9 +32,6 @@ install:
     - echo ${PATH}
 
 script:
-  - cd sem182
-  - make install
-  - cd ..
   - make all
   # tests
   - cd ../tests/external

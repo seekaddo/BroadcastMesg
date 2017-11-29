@@ -2,8 +2,8 @@ language: c
 sudo: required
 
 os:
-#    - linux
-    - osx
+    - linux
+#    - osx
 compiler:
   - gcc-7
 addons:

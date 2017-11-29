@@ -4,5 +4,5 @@
        src="https://img.shields.io/coverity/scan/14413.svg"/>
 </a>
 
-## BroadcastMesg[![license](https://img.shields.io/github/license/mashape/apistatus.svg)]()
+## BroadcastMesg[![license](https://img.shields.io/github/LICENSE/mashape/apistatus.svg)]()
 Using Semaphores and Shared memory to simulate Server/Client message(sender/receiver)

@@ -4,7 +4,6 @@ sudo: required
 os:
     - linux
     - osx
-
 compiler:
   - gcc
   - gcc-7
@@ -16,6 +15,9 @@ addons:
       - gcc-7
       - make
 
+before_install:
+      - uname -a
+      - gcc -v
 
 script:
   - make all

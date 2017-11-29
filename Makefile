@@ -51,15 +51,15 @@ EXCLUDE_PATTERN=footrulewidth
 
 .PHONY: all sender empfaenger
 all: sender empfaenger
-
-sem182.o:
-	$(CC) $(LIBSRC) -o $@
+#
+#sem182.o:
+#	$(CC) $(LIBSRC) -o $@
 
 sender: $(OBJECTS1)
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ $(LIBSRC)
 
 empfaenger: $(OBJECTS2)
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ $(LIBSRC)
 
 
 .SILENT: clean freeshm

@@ -30,8 +30,8 @@ GREP=grep
 DOXYGEN=doxygen
 LIBSRC=./sem182/sem182.c ./sem182/sem182.h
 
-OBJECTS1=sender.o sharedlib.o sem182.o
-OBJECTS2=receiver.o sharedlib.o sem182.o
+OBJECTS1=sender.o sharedlib.o
+OBJECTS2=receiver.o sharedlib.o
 IPS=ipcs
 
 

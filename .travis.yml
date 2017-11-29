@@ -5,7 +5,6 @@ os:
     - linux
     - osx
 compiler:
-  - gcc
   - gcc-7
 addons:
   apt:

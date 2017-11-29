@@ -30,8 +30,8 @@ GREP=grep
 DOXYGEN=doxygen
 LIBSRC=./sem182/sem182.c ./sem182/sem182.h
 
-OBJECTS1=sender.o sharedlib.o
-OBJECTS2=receiver.o sharedlib.o
+OBJECTS1=sender.o sharedlib.o sem182.o
+OBJECTS2=receiver.o sharedlib.o sem182.o
 IPS=ipcs
 
 
@@ -52,11 +52,14 @@ EXCLUDE_PATTERN=footrulewidth
 .PHONY: all sender empfaenger
 all: sender empfaenger
 
+sem182.o:
+	$(CC) $(LIBSRC) -o $@
+
 sender: $(OBJECTS1)
-	$(CC) $^ -o $@ $(LIBSRC)
+	$(CC) $^ -o $@
 
 empfaenger: $(OBJECTS2)
-	$(CC) $^ -o $@ $(LIBSRC)
+	$(CC) $^ -o $@
 
 
 .SILENT: clean freeshm
